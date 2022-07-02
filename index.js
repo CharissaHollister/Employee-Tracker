@@ -2,11 +2,17 @@ const db = require("./db/connection");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
 
+// Start server after DB connection
+db.connect((err) => {
+  if (err) throw err;
+  promptUser();
+});
+
 /////////// prompt user and link routes//////////////
 //what would you like to do? (options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role)
-const promptUser = () => {
-  return inquirer
-    .prompt([
+const promptUser = async () => {
+  try {
+    const data = await inquirer.prompt([
       {
         type: "list",
         name: "toDo",
@@ -21,8 +27,8 @@ const promptUser = () => {
           "Update an Employee Role",
           "Exit",
         ],
-        validate: (toDo) => {
-          if (toDo) {
+        validate: (toDo_1) => {
+          if (toDo_1) {
             return true;
           } else {
             console.log("Entry required!");
@@ -30,17 +36,15 @@ const promptUser = () => {
           }
         },
       },
-    ])
-    .then((data) => {
-      selectQuestion(data.toDo);
-    })
-    .catch((error) => {
-      if (error.isTtyError) {
-        console.log("an error has occured during toDo selection");
-      } else {
-        console.log("an error has occured during toDo selection");
-      }
-    });
+    ]);
+    selectQuestion(data.toDo);
+  } catch (error) {
+    if (error.isTtyError) {
+      console.log("an error has occured during toDo selection");
+    } else {
+      console.log("an error has occured during toDo selection");
+    }
+  }
 };
 
 const selectQuestion = (toDoAnswer) => {
@@ -113,16 +117,154 @@ ORDER BY employee.last_name`;
   });
 }
 
-function viewAllDepartments() {}
+function viewAllDepartments() {
+  const sql = `SELECT * FROM department`;
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.log("an error has occured");
+      return;
+    }
+    // console.log(rows);
+    console.table(rows);
+    promptUser();
+  });
+}
 
-function viewAllRoles() {}
-function addNewDepartment() {}
-function addNewRole() {}
+function viewAllRoles() {
+  const sql = `SELECT role.id, role.salary, role.title AS Job_Title, department.name AS Department 
+FROM role 
+LEFT JOIN department ON role.department_id = department.id
+ORDER BY role.id`;
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.log("an error has occured");
+      return;
+    }
+    // console.log(rows);
+    console.table(rows);
+    promptUser();
+  });
+}
+function addNewDepartment() {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "department_name",
+        message: "Enter the Department Name",
+        validate: (department_name) => {
+          if (department_name) {
+            return true;
+          } else {
+            console.log("Entry required!");
+            return false;
+          }
+        },
+      },
+    ])
+    .then((data) => {
+      //send info to insert sql function
+      const sql = `INSERT INTO department (name)
+  VALUES (?)`;
+      const params = [data.department_name];
+      db.query(sql, params, (err, result) => {
+        if (err) {
+          console.log("an error has occured");
+          return;
+        }
+      });
+      console.log("added " + data.department_name + " to the database");
+      promptUser();
+    });
+}
+function addNewRole() {
+  //get dept options
+  let departmentNameArray = [];
+  let departmentIDArray = [];
+  let departmentQuery = `SELECT * FROM department`;
+  db.query(departmentQuery, (err, res) => {
+    if (err) {
+      console.log("an error has occured");
+      return;
+    }
+    for (i = 0; i < res.length; i++) {
+      departmentNameArray.push(res[i].name);
+      departmentIDArray.push(res[i]);
+    }
+  });
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "role_title",
+        message: "Enter the Title for this Role",
+        validate: (role_title) => {
+          if (role_title) {
+            return true;
+          } else {
+            console.log("Entry required!");
+            return false;
+          }
+        },
+      },
+      {
+        type: "input",
+        name: "salary",
+        message: "Enter Salary for the Role",
+        validate: (salary) => {
+          if (salary) {
+            return true;
+          } else {
+            console.log("Entry required!");
+            return false;
+          }
+        },
+      },
+      {
+        type: "list",
+        name: "departmentName",
+        message: "Select Department",
+        choices: departmentNameArray,
+        validate: (departmentName) => {
+          if (departmentName) {
+            return true;
+          } else {
+            console.log("Entry required!");
+            return false;
+          }
+        },
+      },
+    ])
+    .then((data) => {
+      //translate role_title into role_id and mgr into mgrId
+      // console.log("data:", data);
+      let nameLookup = data.departmentName;
+      let r = departmentNameArray.indexOf(nameLookup);
+      let dept_id = departmentIDArray[r].id;
+
+      //send info to insert sql function
+      const sql = `INSERT INTO role (title, salary, department_id)
+  VALUES (?,?,?)`;
+      const params = [data.role_title, data.salary, dept_id];
+      db.query(sql, params, (err, result) => {
+        if (err) {
+          console.log("an error has occured");
+          return;
+        }
+      });
+      //console.log added first name last name to the database
+      console.log("added " + data.role_title + " to the database");
+      promptUser();
+    });
+}
 function addNewEmployee() {
-  /////add to get role choices?
+  //get role and manager options
   let roleTitleArray = [];
   let roleIDArray = [];
   let roleQuery = `SELECT * FROM role`;
+  let mgrNameArray = [];
+  let mgrIDArray = [];
+  let mgrQuery = `SELECT * FROM employee`;
   db.query(roleQuery, (err, res) => {
     if (err) {
       console.log("an error has occured");
@@ -132,7 +274,18 @@ function addNewEmployee() {
       roleTitleArray.push(res[i].title);
       roleIDArray.push(res[i]);
     }
-    console.log(res, roleTitleArray, roleIDArray);
+  });
+  db.query(mgrQuery, (err, res) => {
+    if (err) {
+      console.log("an error has occured");
+      return;
+    }
+    for (i = 0; i < res.length; i++) {
+      mgrNameArray.push(res[i].first_name);
+      mgrIDArray.push(res[i]);
+    }
+    mgrNameArray.push("none");
+    mgrIDArray.push({ id: null });
   });
   inquirer
     .prompt([
@@ -176,44 +329,124 @@ function addNewEmployee() {
           }
         },
       },
+      {
+        type: "list",
+        name: "manager",
+        message: "Select Employee's Manager",
+        choices: mgrNameArray,
+      },
     ])
     .then((data) => {
-      //translate role_title into role_id
-      let r = roleIDArray.indexOf(data.role_title);
-      let role_id = roleIDArray[r].role.id;
+      //translate role_title into role_id and mgr into mgrId
+      let titleLookup = data.role_title;
+      let r = roleTitleArray.indexOf(titleLookup);
+      let role_id = roleIDArray[r].id;
+      let mgrLookup = data.manager;
+      let m = mgrNameArray.indexOf(mgrLookup);
+      let manager_id = mgrIDArray[m].id;
       //send info to insert sql function
       const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id)
   VALUES (?,?,?,?)`;
-      const params = [
-        data.first_name,
-        data.last_name,
-        role_id,
-        data.manager_id,
-      ];
+      const params = [data.first_name, data.last_name, role_id, manager_id];
       db.query(sql, params, (err, result) => {
         if (err) {
           console.log("an error has occured");
           return;
         }
-      }).catch((error) => {
-        if (error.isTtyError) {
-          console.log("an error has occured");
-        } else {
-          console.log("an error has occured");
-        }
       });
       //console.log added first name last name to the database
       console.log(
-        "added " + data.first_name + data.last_name + "to the database"
+        "added " + data.first_name + " " + data.last_name + " to the database"
       );
       promptUser();
     });
 }
 
-function updateRole() {}
-
-// Start server after DB connection
-db.connect((err) => {
-  if (err) throw err;
-  promptUser();
-});
+function updateRole() {
+  //get role and manager options
+  let roleTitleArray = [];
+  let roleIDArray = [];
+  let roleQuery = `SELECT * FROM role`;
+  let employeeNameArray = [];
+  let employeeIDArray = [];
+  let employeeQuery = `SELECT * FROM employee`;
+  db.query(roleQuery, (err, res) => {
+    if (err) {
+      console.log("an error has occured");
+      return;
+    }
+    for (i = 0; i < res.length; i++) {
+      roleTitleArray.push(res[i].title);
+      roleIDArray.push(res[i]);
+    }
+  });
+  db.query(employeeQuery, (err, res) => {
+    if (err) {
+      console.log("an error has occured");
+      return;
+    }
+    for (i = 0; i < res.length; i++) {
+      employeeNames = res[i].first_name + "" + res[i].last_name;
+      employeeNameArray.push(employeeNames);
+      employeeIDArray.push(res[i]);
+    }
+  });
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "employee_name",
+        message: "Select Employee to Update",
+        validate: (employee_name) => {
+          if (employee_name) {
+            return true;
+          } else {
+            console.log("Entry required!");
+            return false;
+          }
+        },
+      },
+      {
+        type: "list",
+        name: "role_title",
+        message: "Select Employee's Role",
+        choices: roleTitleArray,
+        validate: (role_title) => {
+          if (role_title) {
+            return true;
+          } else {
+            console.log("Entry required!");
+            return false;
+          }
+        },
+      },
+    ])
+    .then((data) => {
+      //translate role_title into role_id and mgr into mgrId
+      let titleLookup = data.role_title;
+      let r = roleTitleArray.indexOf(titleLookup);
+      let role_id = roleIDArray[r].id;
+      let employeeLookup = data.employee_name;
+      let e = employeeNameArray.indexOf(employeeLookup);
+      let employee_id = employeeIDArray[e].id;
+      //send info to insert sql function
+      const sql = `UPDATE employee SET role_id = ? 
+               WHERE id = ?`;
+      const params = [role_id, employee_id];
+      db.query(sql, params, (err, result) => {
+        if (err) {
+          console.log("an error has occured");
+          return;
+        }
+      });
+      //console.log added first name last name to the database
+      console.log(
+        "Updated " +
+          data.employee_name +
+          " to role " +
+          data.role_title +
+          " in the database"
+      );
+      promptUser();
+    });
+}
