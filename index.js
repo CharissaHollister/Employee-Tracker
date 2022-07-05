@@ -394,9 +394,10 @@ function updateRole() {
   inquirer
     .prompt([
       {
-        type: "input",
+        type: "list",
         name: "employee_name",
         message: "Select Employee to Update",
+        choices: employeeNames,
         validate: (employee_name) => {
           if (employee_name) {
             return true;
