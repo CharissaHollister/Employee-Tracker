@@ -2,7 +2,7 @@ const db = require("./db/connection");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
 
-// Start server after DB connection
+/////////// Start server after DB connection/////////////
 db.connect((err) => {
   if (err) throw err;
   promptUser();
@@ -46,13 +46,12 @@ const promptUser = async () => {
     }
   }
 };
-
+//Proceed to appropriate function based on toDo selection
 const selectQuestion = (toDoAnswer) => {
   //if "View all Employees",
   if (toDoAnswer === "View all Employees") {
     viewAllEmployees();
   }
-
   //if "View all Departments",
   else if (toDoAnswer === "View all Departments") {
     viewAllDepartments();
@@ -62,44 +61,29 @@ const selectQuestion = (toDoAnswer) => {
     viewAllRoles();
   }
   //if add department then
-  //what is the name of the department
   else if (toDoAnswer === "Add a new Department") {
     addNewDepartment();
   }
-  //console.log department added
-
   //if add role
-  //name of role
-  //salary of role
-  //which department does the role belong to
   else if (toDoAnswer === "Add a new Role") {
     addNewRole();
   }
-  //console.log added role to the database
-
   //if add employee
-  //ask for these
-  // "first_name",
-  // "last_name",
-  // "role_id",
-  // "manager_id"
   else if (toDoAnswer === "Add a new Employee") {
     addNewEmployee();
   }
   //if update employee role
-  //which employee's role do you want to update? (list of employee names to pick from)
-  //which role
   else if (toDoAnswer === "Update an Employee Role") {
     updateRole();
-  }
-  //console.log employee X updated to role Y
-  else {
+  } else {
     console.log("Have a Nice Day!");
   }
 };
-/////////////////end of prompts////////////
+/////////////////end of what to do prompt////////////
 
+////////////functions for each toDo response/////////////
 function viewAllEmployees() {
+  //formatted table showing employee data, including employee ids, first names, last names, job titles, departments, salaries, and managers that the employees report to
   const sql = `SELECT employee.*, role.salary 
 AS Salary, role.title AS Job_Title, department.name AS Department 
 FROM employee 
@@ -111,26 +95,28 @@ ORDER BY employee.last_name`;
       console.log("an error has occured");
       return;
     }
-    // console.log(rows);
     console.table(rows);
+    //return to toDo prompt
     promptUser();
   });
 }
 
 function viewAllDepartments() {
+  //formatted table showing department names and department ids
   const sql = `SELECT * FROM department`;
   db.query(sql, (err, rows) => {
     if (err) {
       console.log("an error has occured");
       return;
     }
-    // console.log(rows);
     console.table(rows);
+    //return to toDo prompt
     promptUser();
   });
 }
 
 function viewAllRoles() {
+  //formatted table showing job title, role id, the department that role belongs to, and the salary for that role
   const sql = `SELECT role.id, role.salary, role.title AS Job_Title, department.name AS Department 
 FROM role 
 LEFT JOIN department ON role.department_id = department.id
@@ -140,12 +126,13 @@ ORDER BY role.id`;
       console.log("an error has occured");
       return;
     }
-    // console.log(rows);
     console.table(rows);
+    //return to toDo prompt
     promptUser();
   });
 }
 function addNewDepartment() {
+  //what is the name of the department
   inquirer
     .prompt([
       {
@@ -173,11 +160,14 @@ function addNewDepartment() {
           return;
         }
       });
+      //console.log added to the database
       console.log("added " + data.department_name + " to the database");
+      //return to toDo prompt
       promptUser();
     });
 }
 function addNewRole() {
+  //include: name of role,salary of role,which department does the role belong to
   //get dept options
   let departmentNameArray = [];
   let departmentIDArray = [];
@@ -236,12 +226,10 @@ function addNewRole() {
       },
     ])
     .then((data) => {
-      //translate role_title into role_id and mgr into mgrId
-      // console.log("data:", data);
+      //translate departmentName into departmentID
       let nameLookup = data.departmentName;
       let r = departmentNameArray.indexOf(nameLookup);
       let dept_id = departmentIDArray[r].id;
-
       //send info to insert sql function
       const sql = `INSERT INTO role (title, salary, department_id)
   VALUES (?,?,?)`;
@@ -252,12 +240,14 @@ function addNewRole() {
           return;
         }
       });
-      //console.log added first name last name to the database
+      //console.log added to the database
       console.log("added " + data.role_title + " to the database");
+      //return to toDo prompt
       promptUser();
     });
 }
 function addNewEmployee() {
+  //ask for these "first_name","last_name","role_id","manager_id"
   //get role and manager options
   let roleTitleArray = [];
   let roleIDArray = [];
@@ -354,16 +344,18 @@ function addNewEmployee() {
           return;
         }
       });
-      //console.log added first name last name to the database
+      //console.log added to the database
       console.log(
         "added " + data.first_name + " " + data.last_name + " to the database"
       );
+      //return to toDo prompt
       promptUser();
     });
 }
 
-// function updateRole(){console.log("update role")}
 function updateRole() {
+  //which employee's role do you want to update? (list of employee names to pick from)
+  //which role (list to pick from)
   //get role and manager options
   let roleTitleArray = [];
   let roleIDArray = [];
@@ -389,9 +381,8 @@ function updateRole() {
       console.log("an error has occured");
       return;
     }
-    // console.log("res for employee array", res);
     for (i = 0; i < res.length; i++) {
-      employeeNames = res[i].first_name + "" + res[i].last_name;
+      employeeNames = res[i].first_name + " " + res[i].last_name;
       employeeNameArray.push(employeeNames);
       employeeIDArray.push(res[i]);
     }
@@ -401,6 +392,7 @@ function updateRole() {
   inquirer
     .prompt([
       {
+        /////////isn't making the list to pick from show up
         type: "list",
         name: "employee_name",
         message: "Select Employee to Update",
@@ -430,7 +422,7 @@ function updateRole() {
       },
     ])
     .then((data) => {
-      //translate role_title into role_id and mgr into mgrId
+      //translate role_title into role_id and employeename into employeeID
       let titleLookup = data.role_title;
       let r = roleTitleArray.indexOf(titleLookup);
       let role_id = roleIDArray[r].id;
@@ -447,7 +439,7 @@ function updateRole() {
           return;
         }
       });
-      //console.log added first name last name to the database
+      //console.log added to the database
       console.log(
         "Updated " +
           data.employee_name +
@@ -455,6 +447,8 @@ function updateRole() {
           data.role_title +
           " in the database"
       );
+      //return to toDo prompt
       promptUser();
     });
 }
+////////////end of functions for each toDo response/////////////
