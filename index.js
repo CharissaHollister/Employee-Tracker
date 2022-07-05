@@ -264,7 +264,7 @@ function addNewEmployee() {
   let roleQuery = `SELECT * FROM role`;
   let mgrNameArray = [];
   let mgrIDArray = [];
-  let mgrQuery = `SELECT * FROM employee`;
+  let mgrQuery = `SELECT * FROM employee WHERE role_id=3`;
   db.query(roleQuery, (err, res) => {
     if (err) {
       console.log("an error has occured");
@@ -362,6 +362,7 @@ function addNewEmployee() {
     });
 }
 
+// function updateRole(){console.log("update role")}
 function updateRole() {
   //get role and manager options
   let roleTitleArray = [];
@@ -370,6 +371,7 @@ function updateRole() {
   let employeeNameArray = [];
   let employeeIDArray = [];
   let employeeQuery = `SELECT * FROM employee`;
+
   db.query(roleQuery, (err, res) => {
     if (err) {
       console.log("an error has occured");
@@ -379,25 +381,30 @@ function updateRole() {
       roleTitleArray.push(res[i].title);
       roleIDArray.push(res[i]);
     }
+    // console.log("role array:", roleTitleArray);
   });
+
   db.query(employeeQuery, (err, res) => {
     if (err) {
       console.log("an error has occured");
       return;
     }
+    // console.log("res for employee array", res);
     for (i = 0; i < res.length; i++) {
       employeeNames = res[i].first_name + "" + res[i].last_name;
       employeeNameArray.push(employeeNames);
       employeeIDArray.push(res[i]);
     }
+    // console.log("employee array", employeeNameArray);
   });
+
   inquirer
     .prompt([
       {
         type: "list",
         name: "employee_name",
         message: "Select Employee to Update",
-        choices: employeeNames,
+        choices: employeeNameArray,
         validate: (employee_name) => {
           if (employee_name) {
             return true;
