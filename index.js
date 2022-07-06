@@ -159,11 +159,11 @@ function addNewDepartment() {
           console.log("an error has occured");
           return;
         }
+        //console.log added to the database
+        console.log("added " + data.department_name + " to the database");
+        //return to toDo prompt
+        promptUser();
       });
-      //console.log added to the database
-      console.log("added " + data.department_name + " to the database");
-      //return to toDo prompt
-      promptUser();
     });
 }
 function addNewRole() {
@@ -239,11 +239,11 @@ function addNewRole() {
           console.log("an error has occured");
           return;
         }
+        //console.log added to the database
+        console.log("added " + data.role_title + " to the database");
+        //return to toDo prompt
+        promptUser();
       });
-      //console.log added to the database
-      console.log("added " + data.role_title + " to the database");
-      //return to toDo prompt
-      promptUser();
     });
 }
 function addNewEmployee() {
@@ -343,13 +343,13 @@ function addNewEmployee() {
           console.log("an error has occured");
           return;
         }
+        //console.log added to the database
+        console.log(
+          "added " + data.first_name + " " + data.last_name + " to the database"
+        );
+        //return to toDo prompt
+        promptUser();
       });
-      //console.log added to the database
-      console.log(
-        "added " + data.first_name + " " + data.last_name + " to the database"
-      );
-      //return to toDo prompt
-      promptUser();
     });
 }
 
@@ -374,81 +374,81 @@ function updateRole() {
       roleIDArray.push(res[i]);
     }
     // console.log("role array:", roleTitleArray);
-  });
 
-  db.query(employeeQuery, (err, res) => {
-    if (err) {
-      console.log("an error has occured");
-      return;
-    }
-    for (i = 0; i < res.length; i++) {
-      employeeNames = res[i].first_name + " " + res[i].last_name;
-      employeeNameArray.push(employeeNames);
-      employeeIDArray.push(res[i]);
-    }
-    // console.log("employee array", employeeNameArray);
-  });
+    db.query(employeeQuery, (err, res) => {
+      if (err) {
+        console.log("an error has occured");
+        return;
+      }
+      for (i = 0; i < res.length; i++) {
+        employeeNames = res[i].first_name + " " + res[i].last_name;
+        employeeNameArray.push(employeeNames);
+        employeeIDArray.push(res[i]);
+      }
+      // console.log("employee array", employeeNameArray);
 
-  inquirer
-    .prompt([
-      {
-        /////////isn't making the list to pick from show up
-        type: "list",
-        name: "employee_name",
-        message: "Select Employee to Update",
-        choices: employeeNameArray,
-        validate: (employee_name) => {
-          if (employee_name) {
-            return true;
-          } else {
-            console.log("Entry required!");
-            return false;
-          }
-        },
-      },
-      {
-        type: "list",
-        name: "role_title",
-        message: "Select Employee's Role",
-        choices: roleTitleArray,
-        validate: (role_title) => {
-          if (role_title) {
-            return true;
-          } else {
-            console.log("Entry required!");
-            return false;
-          }
-        },
-      },
-    ])
-    .then((data) => {
-      //translate role_title into role_id and employeename into employeeID
-      let titleLookup = data.role_title;
-      let r = roleTitleArray.indexOf(titleLookup);
-      let role_id = roleIDArray[r].id;
-      let employeeLookup = data.employee_name;
-      let e = employeeNameArray.indexOf(employeeLookup);
-      let employee_id = employeeIDArray[e].id;
-      //send info to insert sql function
-      const sql = `UPDATE employee SET role_id = ? 
+      inquirer
+        .prompt([
+          {
+            /////////isn't making the list to pick from show up
+            type: "list",
+            name: "employee_name",
+            message: "Select Employee to Update",
+            choices: employeeNameArray,
+            validate: (employee_name) => {
+              if (employee_name) {
+                return true;
+              } else {
+                console.log("Entry required!");
+                return false;
+              }
+            },
+          },
+          {
+            type: "list",
+            name: "role_title",
+            message: "Select Employee's Role",
+            choices: roleTitleArray,
+            validate: (role_title) => {
+              if (role_title) {
+                return true;
+              } else {
+                console.log("Entry required!");
+                return false;
+              }
+            },
+          },
+        ])
+        .then((data) => {
+          //translate role_title into role_id and employeename into employeeID
+          let titleLookup = data.role_title;
+          let r = roleTitleArray.indexOf(titleLookup);
+          let role_id = roleIDArray[r].id;
+          let employeeLookup = data.employee_name;
+          let e = employeeNameArray.indexOf(employeeLookup);
+          let employee_id = employeeIDArray[e].id;
+          //send info to insert sql function
+          const sql = `UPDATE employee SET role_id = ? 
                WHERE id = ?`;
-      const params = [role_id, employee_id];
-      db.query(sql, params, (err, result) => {
-        if (err) {
-          console.log("an error has occured");
-          return;
-        }
-      });
-      //console.log added to the database
-      console.log(
-        "Updated " +
-          data.employee_name +
-          " to role " +
-          data.role_title +
-          " in the database"
-      );
-      //return to toDo prompt
-      promptUser();
+          const params = [role_id, employee_id];
+          db.query(sql, params, (err, result) => {
+            if (err) {
+              console.log("an error has occured");
+              return;
+            }
+            //console.log added to the database
+            console.log(
+              "Updated " +
+                data.employee_name +
+                " to role " +
+                data.role_title +
+                " in the database"
+            );
+            //return to toDo prompt
+            promptUser();
+          });
+        });
     });
+  });
 }
 ////////////end of functions for each toDo response/////////////
